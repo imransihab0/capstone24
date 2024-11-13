@@ -32,7 +32,7 @@ A simplified CLI-based simulation of an online banking system inspired by **Bkas
   cd capstone24
 - To compile the project, run:
   ```sh
-  gcc main.c -o bkash_app
+  gcc main.c -o bkash
 - Once compiled, you can start the application using:
   ```sh
   ./bkash.exe (for window) and ./bkash.exe (for mac and linux)
