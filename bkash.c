@@ -1,10 +1,11 @@
 // https://github.com/imransihab0/capstone24
 // capstone project by @imransihab0
 
-#include<stdio.h>
+#include <stdio.h>
 #include <string.h>
-#include<stdbool.h>
-#include<ctype.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include <conio.h>
 
 #define cout printf
 #define cin scanf
@@ -38,6 +39,30 @@ void conGo() {
     cout("|   Congratulations. Account Create Successfully!  |\n");
     cout("|--------------------------------------------------|\n");
     el;
+}
+
+// 4. "*****" input function
+void maskInput(char *input, int maxLen) {
+    int i = 0;
+    char ch;
+
+    // _getch() function can take input char without printing in console
+
+    while (i < maxLen - 1 && (ch = _getch()) != '\r') { // '\r' is Enter key in Windows
+        if (ch == '\b' || ch == 127) {  // Handle backspace and ch127 is del key
+            if (i > 0) {
+                printf("\b \b");
+                // Erase the last * by printing a backspace (\b), a space,
+                // and another backspace to move the cursor back.
+                i--;
+            }
+        } else {
+            input[i++] = ch;
+            printf("*");
+        }
+    }
+    input[i] = '\0';  // Null-terminate string
+    printf("\n");
 }
 
 // necessary functions ------- END -------------
@@ -80,6 +105,7 @@ void conGo() {
 
 
 // all cheking functions ------ END ------------
+
 
 
 void reg() {
@@ -144,9 +170,8 @@ void reg() {
 
     // PIN section -------->
     
-    cout("Enter PIN: ");
-    cinString(pin);
-    pin[strcspn(pin, "\n")] = 0;    // Remove newline character from input
+    cout("Enter PIN (6 digits): ");
+    maskInput(pin, sizeof(pin));
 
     while(true) {
         if(isValidPin(pin)) {
@@ -154,9 +179,8 @@ void reg() {
         } else {
             int ret = wrongInput("PIN");
             if(ret == 1) {
-                cout("Enter PIN: ");
-                cinString(pin);
-                pin[strcspn(pin, "\n")] = 0;
+                cout("Enter PIN Again (6 digits): ");
+                maskInput(pin, sizeof(pin));
             } else {
                 cout("Canceling...\n");
                 return;
@@ -166,8 +190,7 @@ void reg() {
 
     // reType sectio-->
     cout("Re-type PIN: ");
-    cinString(reTypePin);
-    reTypePin[strcspn(reTypePin, "\n")] = 0;    // Remove newline character from input
+    maskInput(reTypePin, sizeof(reTypePin));
 
     while(true) {
         if(strcmp(pin, reTypePin) == 0) {
@@ -177,9 +200,8 @@ void reg() {
             int ret; cin("%d", &ret);
             getchar();
             if(ret == 1) {
-                cout("\nEnter PIN Again: ");
-                cinString(reTypePin);
-                reTypePin[strcspn(reTypePin, "\n")] = 0;
+                cout("\nRe-type PIN Again: ");
+                maskInput(reTypePin, sizeof(reTypePin));
             } else {
                 cout("Canceling...\n");
                 return;
