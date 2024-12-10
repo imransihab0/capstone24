@@ -35,4 +35,4 @@ A simplified CLI-based simulation of an online banking system inspired by **Bkas
   gcc main.c -o bkash
 - Once compiled, you can start the application using:
   ```sh
-  ./bkash.exe (for window) and ./bkash.exe (for mac and linux)
+  ./bkash.exe (for window) and ./bkash.out (for mac and linux)
