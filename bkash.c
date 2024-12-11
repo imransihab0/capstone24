@@ -507,6 +507,12 @@ void resetPIN(char *senderUserFile) {
         }
     }
 
+    clearTerminal();
+    cout("--------------------------\n");
+    cout("     Reset PIN -->\n");
+    cout("--------------------------\n");
+    el;
+
     // Ask the user for the old PIN
     printf("Enter your current 6-digit PIN: ");
     maskInput(enteredOldPIN, sizeof(enteredOldPIN));
@@ -555,7 +561,7 @@ void resetPIN(char *senderUserFile) {
     remove(senderUserFile);           // Delete the old file
     rename("temp.txt", senderUserFile); // Rename temp file to the original file
 
-    printf("PIN successfully reset! Your new PIN is: %s\n", newPIN);
+    printf("PIN successfully reset!\n");
 }
 
 void cashOut(char *senderUserFile) {
