@@ -450,7 +450,7 @@ void Dashboard(char *user) {
         cout("1. Send Money\n2. Mobile Recharge\n");
         cout("3. Bill Pay\n4. Payment\n");
         cout("5. Cashout\n6. Reset PIN.\n");
-        cout("5. My Bkash\n0. Log out.\n");
+        cout("7. My Bkash\n0. Log out.\n");
 
         el;
 
@@ -461,17 +461,296 @@ void Dashboard(char *user) {
             cout("Logging out...\n");
             break;
         } else if(chs == 1) {
-            sendMoney(user);
+            sendMoney(user, phoneNumber);
             return;
         } else if(chs == 2) {
             mobileRecharge(user);
+            return;
+        } else if(chs == 3) {
+            billPay(user);
+            return;
+        } else if(chs == 4) {
+            payment(user);
+            return;
+        } else if(chs == 5) {
+            cashOut(user);
+            return;
+        } else if(chs == 6) {
+            resetPIN(user);
+            return;
+        } else if(chs == 7) {
+            cout("---------------\n");
+            cout("   My Bkash\n");
+            cout("---------------\n");
+            cout("Name: %s\n", name);
+            cout("Phone number: %s\n", phoneNumber);
+            cout("Blanace: %s\n", balance);
             return;
         }
         else UnderConstruction();
     }
 }
 
-void sendMoney(char *senderUserFile) {
+void resetPIN(char *senderUserFile) {
+    FILE *userFile = fopen(senderUserFile, "r+"); // Open file for reading and writing
+
+    char line[256];
+    char currentPIN[7];
+    char enteredOldPIN[7];
+    char newPIN[7];
+
+    // Read the user file and find the PIN line
+    while (fgets(line, sizeof(line), userFile)) {
+        if (strncmp(line, "PIN: ", 5) == 0) {
+            sscanf(line + 5, "%6s", currentPIN); // Extract current PIN
+            break;
+        }
+    }
+
+    // Ask the user for the old PIN
+    printf("Enter your current 6-digit PIN: ");
+    maskInput(enteredOldPIN, sizeof(enteredOldPIN));
+
+    // Validate the old PIN
+    if (strcmp(currentPIN, enteredOldPIN) != 0) {
+        printf("Incorrect PIN! Access denied.\n");
+        fclose(userFile);
+        return;
+    }
+
+    // Ask for the new PIN
+    printf("Enter your new 6-digit PIN: ");
+    maskInput(newPIN, sizeof(newPIN));
+
+    // Validate the new PIN (must be exactly 6 digits)
+    if (!isValidPin(newPIN)) {
+        printf("Invalid PIN! PIN must be exactly 6 digits.\n");
+        fclose(userFile);
+        return;
+    }
+
+    // Update the file with the new PIN
+    fseek(userFile, 0, SEEK_SET); // Go back to the beginning of the file
+    FILE *tempFile = fopen("temp.txt", "w"); // Create a temporary file for writing the updated content
+    if (!tempFile) {
+        printf("Error opening temporary file!\n");
+        fclose(userFile);
+        return;
+    }
+
+    // Copy content to temporary file while replacing the PIN line
+    rewind(userFile);
+    while (fgets(line, sizeof(line), userFile)) {
+        if (strncmp(line, "PIN: ", 5) == 0) {
+            fprintf(tempFile, "PIN: %s\n", newPIN); // Replace old PIN with new PIN
+        } else {
+            fputs(line, tempFile); // Copy all other lines as is
+        }
+    }
+
+    fclose(userFile);
+    fclose(tempFile);
+
+    // Replace the original file with the temporary file
+    remove(senderUserFile);           // Delete the old file
+    rename("temp.txt", senderUserFile); // Rename temp file to the original file
+
+    printf("PIN successfully reset! Your new PIN is: %s\n", newPIN);
+}
+
+void cashOut(char *senderUserFile) {
+    string agentNumber, line, senderBalanceStr;
+    char receiverUserFile[120];
+    int senderBalance = 0, receiverBalance = 0, sendingAmount;
+
+    // Read sender's current balance
+    FILE *senderFile = fopen(senderUserFile, "r");
+    if (!senderFile) {
+        cout("The entered number belongs to a Bkash user. Please provide a valid Agent number to proceed.\n");
+        return;
+    }
+
+    while (fgets(line, sizeof(line), senderFile)) {
+        if (strncmp(line, "Balance: ", 9) == 0) {
+            sscanf(line + 9, "%d", &senderBalance);
+            break;
+        }
+    }
+    fclose(senderFile);
+        
+    clearTerminal();
+    cout("--------------------------\n");
+    cout("     Cash Out -->\n");
+    cout("--------------------------\n");
+    el;
+
+    getchar();
+
+    cout("Enter Bkash Agent number: ");
+    cinString(agentNumber);
+    agentNumber[strcspn(agentNumber, "\n")] = 0; // Remove newline
+    // getchar();
+
+    snprintf(receiverUserFile, sizeof(receiverUserFile), "database/%s.txt", agentNumber);
+    if(fileExists(receiverUserFile)) {
+        cout("This is a bkash user number. Please enter a Agent number and try again!\n");
+        return;
+    }
+
+    // Ask for the sending amount
+    cout("Enter amount payment: ");
+    cin("%d", &sendingAmount);
+    getchar();
+
+    // Validate amount
+    if(sendingAmount <= 0) {
+        cout("\nInvalid amount!\nAmmount can\'t be smaller than ZERO\n");
+        cout("Try Again\n");
+        return;
+    }
+
+    if(sendingAmount > senderBalance) {
+        cout("\nInsufficient balance!\n");
+        cout("Do \"Cash In\" and try again later!\nThank You!\n");
+        return;
+    }
+
+    // Update balances
+    senderBalance -= sendingAmount;
+
+    // Update sender's file
+    if (updateBalanceInFile(senderUserFile, senderBalance)) {
+        cout("Cash out of %d BDT Successful!\nYour new balance is: %d!\n", sendingAmount, senderBalance);
+    } else {
+        cout("Some error occured! Please try again later!\n");
+    }
+}
+
+void payment(char *senderUserFile) {
+    string marchentBkashNumber, line, senderBalanceStr;
+    char receiverUserFile[120];
+    int senderBalance = 0, receiverBalance = 0, sendingAmount;
+
+    // Read sender's current balance
+    FILE *senderFile = fopen(senderUserFile, "r");
+    if (!senderFile) {
+        cout("An error occurred while accessing your account!\n");
+        return;
+    }
+
+    while (fgets(line, sizeof(line), senderFile)) {
+        if (strncmp(line, "Balance: ", 9) == 0) {
+            sscanf(line + 9, "%d", &senderBalance);
+            break;
+        }
+    }
+    fclose(senderFile);
+        
+    clearTerminal();
+    cout("--------------------------\n");
+    cout("     Payment -->\n");
+    cout("--------------------------\n");
+    el;
+
+    getchar();
+
+    cout("Enter marchent bkash number: ");
+    cinString(marchentBkashNumber);
+    marchentBkashNumber[strcspn(marchentBkashNumber, "\n")] = 0; // Remove newline
+    // getchar();
+
+    // Ask for the sending amount
+    cout("Enter amount payment: ");
+    cin("%d", &sendingAmount);
+    getchar();
+
+    // Validate amount
+    if(sendingAmount <= 0) {
+        cout("\nInvalid amount!\nAmmount can\'t be smaller than ZERO\n");
+        cout("Try Again\n");
+        return;
+    }
+
+    if(sendingAmount > senderBalance) {
+        cout("\nInsufficient balance!\n");
+        cout("Do \"Cash In\" and try again later!\nThank You!\n");
+        return;
+    }
+
+    // Update balances
+    senderBalance -= sendingAmount;
+
+    // Update sender's file
+    if (updateBalanceInFile(senderUserFile, senderBalance)) {
+        cout("Payment Successful! Paid to %s!\nYour new balance is: %d!\n", marchentBkashNumber, senderBalance);
+    } else {
+        cout("Some error occured! Please try again later!\n");
+    }
+}
+
+void billPay(char *senderUserFile) {
+    string meterNumber, line, senderBalanceStr;
+    char receiverUserFile[120];
+    int senderBalance = 0, receiverBalance = 0, sendingAmount;
+
+    // Read sender's current balance
+    FILE *senderFile = fopen(senderUserFile, "r");
+    if (!senderFile) {
+        cout("An error occurred while accessing your account!\n");
+        return;
+    }
+
+    while (fgets(line, sizeof(line), senderFile)) {
+        if (strncmp(line, "Balance: ", 9) == 0) {
+            sscanf(line + 9, "%d", &senderBalance);
+            break;
+        }
+    }
+    fclose(senderFile);
+        
+    clearTerminal();
+    cout("--------------------------\n");
+    cout("     Bill Pay -->\n");
+    cout("--------------------------\n");
+    el;
+
+    getchar();
+
+    cout("Enter pre-paid meter number: ");
+    cinString(meterNumber);
+    meterNumber[strcspn(meterNumber, "\n")] = 0; // Remove newline
+    // getchar();
+
+    // Ask for the sending amount
+    cout("Enter amount of bill: ");
+    cin("%d", &sendingAmount);
+    getchar();
+
+    // Validate amount
+    if(sendingAmount <= 0) {
+        cout("\nInvalid amount!\nAmmount can\'t be smaller than ZERO\n");
+        cout("Try Again\n");
+        return;
+    }
+
+    if(sendingAmount > senderBalance) {
+        cout("\nInsufficient balance!\n");
+        cout("Do \"Cash In\" and try again later!\nThank You!\n");
+        return;
+    }
+
+    // Update balances
+    senderBalance -= sendingAmount;
+
+    // Update sender's file
+    if (updateBalanceInFile(senderUserFile, senderBalance)) {
+        cout("Electricity bill paid to %s!\nYour new balance is: %d!\n", meterNumber, senderBalance);
+    } else {
+        cout("Some error occured! Please try again later!\n");
+    }
+}
+
+void sendMoney(char *senderUserFile, char *senderPhoneNumber) {
     string receiverPhone, line, senderBalanceStr;
     char receiverUserFile[120];
     int senderBalance = 0, receiverBalance = 0, sendingAmount;
@@ -503,6 +782,11 @@ void sendMoney(char *senderUserFile) {
     cinString(receiverPhone);
     receiverPhone[strcspn(receiverPhone, "\n")] = 0; // Remove newline
     // getchar();
+
+    if(strcmp(senderPhoneNumber, receiverPhone) == 0) {
+        cout("Can't send money to your self phone number!\n");
+        return;
+    }
 
     // Check if the receiver exists
     snprintf(receiverUserFile, sizeof(receiverUserFile), "database/%s.txt", receiverPhone);
